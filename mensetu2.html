@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI就活会議 (Final Perfect)</title>
+    <style>
+        /* --- デザイン設定 --- */
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Yu Gothic", sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #app-container {
+            width: 100%;
+            max-width: 800px;
+            height: 100%;
+            background: #1a1a1a;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: #1a1a1a;
+            z-index: 10;
+            transition: opacity 0.3s ease;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .hidden { opacity: 0; pointer-events: none; z-index: 0; }
+
+        /* --- 初期設定画面 --- */
+        #key-screen {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            overflow-y: auto;
+        }
+        h2 { color: #4dabf7; margin-bottom: 10px; }
+        .desc { font-size: 0.9rem; color: #ccc; margin-bottom: 20px; line-height: 1.6; text-align: left; }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background: #333;
+            color: #fff;
+            font-size: 16px;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+        button {
+            background: #0060c0; color: white; border: none;
+            padding: 15px 30px; border-radius: 30px;
+            font-size: 1rem; font-weight: bold; cursor: pointer;
+            width: 100%; max-width: 300px;
+        }
+        button:active { transform: scale(0.98); }
+
+        /* --- 画像エリア --- */
+        #video-grid {
+            flex: 0 0 auto;
+            height: 180px;
+            display: flex;
+            gap: 8px;
+            padding: 10px;
+            background: #000;
+            overflow-x: auto;
+            align-items: center;
+            border-bottom: 1px solid #333;
+            -webkit-overflow-scrolling: touch;
+        }
+        .video-box {
+            width: 140px; height: 105px;
+            background: #222; border-radius: 4px;
+            position: relative; overflow: hidden;
+            border: 2px solid transparent; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .video-content { width: 100%; height: 100%; object-fit: cover; }
+        .video-name {
+            position: absolute; bottom: 2px; left: 2px;
+            background: rgba(0,0,0,0.7); color: white;
+            font-size: 0.7rem; padding: 2px 6px; border-radius: 2px;
+        }
+        .video-box.speaking { border-color: #28a745; box-shadow: 0 0 10px rgba(40, 167, 69, 0.8); }
+
+        /* --- チャットエリア --- */
+        #chat-area {
+            flex: 1;
+            width: 100%;
+            padding: 15px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: #1a1a1a;
+            -webkit-overflow-scrolling: touch;
+        }
+        .message {
+            max-width: 90%;
+            padding: 10px 15px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+        .ai-msg { align-self: flex-start; background: #2d2d2d; color: #eee; border-left: 4px solid #666; }
+        .user-msg { align-self: flex-end; background: #0056b3; color: #fff; border-right: 4px solid #4dabf7; }
+        .sys-msg { align-self: center; color: #aaa; font-size: 0.8rem; text-align: center; }
+        
+        .msg-name {
+            font-size: 0.8rem; font-weight: bold; margin-bottom: 3px; color: #aaa; display: block;
+        }
+
+        /* --- 操作エリア --- */
+        #controls {
+            width: 100%;
+            background: #111;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            box-sizing: border-box;
+            border-top: 1px solid #333;
+            gap: 10px;
+        }
+        
+        .warning-text {
+            color: #ffcc00;
+            font-size: 0.8rem;
+            text-align: center;
+            background: rgba(255, 204, 0, 0.1);
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ffcc00;
+        }
+
+        #input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        #user-text-input {
+            flex: 1;
+            background: #222;
+            border: 1px solid #555;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            height: 50px;
+            resize: none;
+            margin-bottom: 0;
+        }
+        
+        #btn-group {
+            display: flex;
+            gap: 10px;
+            height: 50px;
+        }
+        #mic-btn {
+            width: 60px;
+            background: #333;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #555;
+        }
+        #mic-btn.recording {
+            background: #dc3545;
+            color: white;
+            border-color: #ffaaaa;
+            animation: pulse 1.5s infinite;
+        }
+        #send-btn {
+            flex: 1;
+            background: #28a745;
+            color: white;
+            font-weight: bold;
+        }
+        
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+
+        @media (min-width: 768px) {
+            #video-grid { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <div id="key-screen" class="screen">
+            <h2>設定</h2>
+            <p class="desc">
+                完全無料となっておりますが、APIキー（AIを使用するためのキー番号）を取得していただく必要があります。<br>
+                （APIキーをこちらでご用意させていただくとなると、どうしても有料となるためです。）<br>
+                <br>
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#4dabf7;">👉 APIキーを取得(Google)</a><br>
+                <br>
+                取得したキーを下に貼り付けてください。
+            </p>
+            <input type="text" id="api-key-input" placeholder="AIza...">
+            <div style="margin-bottom:20px; text-align:center; display:flex; align-items:center; justify-content:center;">
+                <input type="checkbox" id="save-key" checked style="width:auto; margin:0 5px 0 0;">
+                <label for="save-key" style="color:#ccc;">キーを保存する</label>
+            </div>
+            <button onclick="saveKeyAndNext()">次へ</button>
+        </div>
+
+        <div id="title-screen" class="screen hidden">
+            <h1 style="text-align:center; color:#4dabf7; margin-top:50px;">AI就活</h1>
+            <input type="text" id="company-input" placeholder="企業名 OR テーマ (例: トヨタ自動車)">
+            
+            <div style="display:flex; flex-direction:column; gap:15px; align-items:center; width:100%;">
+                <button onclick="startGame('interview')">👔 面接モード</button>
+                <button onclick="startGame('gd')" style="background:#444;">🗣️ GDモード</button>
+            </div>
+        </div>
+
+        <div id="game-screen" class="screen hidden" style="padding:0;">
+            <div id="video-grid"></div>
+            <div id="chat-area">
+                <div class="message sys-msg">接続完了。</div>
+            </div>
+            
+            <div id="controls">
+                <div class="warning-text" id="status-text">
+                    ⚠️ AIの発言が終わってから話してください
+                </div>
+
+                <div id="input-group">
+                    <textarea id="user-text-input" placeholder="ここに入力されます..."></textarea>
+                    <div id="btn-group">
+                        <button id="mic-btn" onclick="toggleMic()">🎤</button>
+                        <button id="send-btn" onclick="sendMessage()">送信</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let USER_API_KEY = "";
+        let recognition;
+        let isRecording = false;
+        let conversationHistory = [];
+        let currentMode = "";
+        let targetCompany = "";
+        let interviewCount = 0;
+        let isAiSpeaking = false;
+        let synthesis = window.speechSynthesis;
+        let abortController = null; // APIキャンセル用
+
+        const imageSources = {
+            "面接官": "https://bit.ly/3UVr0vA", "人事": "https://bit.ly/3V2J8Zq",
+            "田中": "https://bit.ly/3V0yGjK", "佐藤": "https://bit.ly/3V2JaLu",
+            "鈴木": "https://bit.ly/3V3Kk1n", "高橋": "https://bit.ly/3V0yHnm",
+            "渡辺": "https://bit.ly/3V2JcPy", "自分": "https://bit.ly/3UZ9zXy"
+        };
+        
+        const voiceConfig = {
+            "面接官": {p:0.8, r:1.2}, "人事": {p:1.0, r:1.2},
+            "田中": {p:0.7, r:1.3}, "佐藤": {p:1.1, r:1.3},
+            "鈴木": {p:1.3, r:1.3}, "高橋": {p:0.6, r:1.2},
+            "渡辺": {p:1.0, r:1.3}
+        };
+
+        window.onload = () => {
+            const saved = localStorage.getItem("gemini_api_key");
+            if (saved) document.getElementById('api-key-input').value = saved;
+        };
+
+        function saveKeyAndNext() {
+            const key = document.getElementById('api-key-input').value.trim();
+            if (!key.startsWith("AIza")) { alert("正しいキーを入力してください"); return; }
+            USER_API_KEY = key;
+            if (document.getElementById('save-key').checked) localStorage.setItem("gemini_api_key", key);
+            
+            document.getElementById('key-screen').classList.add('hidden');
+            document.getElementById('title-screen').classList.remove('hidden');
+        }
+
+        function startGame(mode) {
+            currentMode = mode;
+            targetCompany = document.getElementById('company-input').value || "御社";
+            
+            document.getElementById('title-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            
+            setupVideos();
+            initSpeech();
+
+            // 最初の発言をAIにさせる
+            if (mode === 'interview') {
+                askGemini(`【指令】私は「${targetCompany}」の面接に来ました。面接官として挨拶し、まず自己紹介を求めてください。`, true);
+            } else {
+                // GD: 人事がいきなり話し出す設定
+                askGemini(`【GD開始指令】お題「${targetCompany}」。
+                あなたは5人の学生（田中、佐藤、鈴木、高橋、渡辺）を演じます。
+                
+                【重要：均等に発言させてください】
+                田中ばかり発言させず、佐藤、鈴木、高橋、渡辺にも均等に話を振ってください。
+
+                現在は【開始】の段階です。
+                まず「人事」が登場して、テーマと時間を説明してください。
+                その直後に、学生メンバーの誰か（ランダム）が議論を始めてください。
+                出力形式:『名前: 発言』`, true);
+            }
+        }
+
+        function setupVideos() {
+            const grid = document.getElementById('video-grid');
+            grid.innerHTML = "";
+            const members = currentMode === 'interview' ? ["面接官"] : ["人事", "田中", "佐藤", "鈴木", "高橋", "渡辺"];
+            
+            members.forEach(name => {
+                const div = document.createElement('div');
+                div.className = "video-box"; div.id = `video-${name}`;
+                div.innerHTML = `<img src="${imageSources[name]}" class="video-content" onerror="this.style.display='none'"><div class="video-name">${name}</div>`;
+                grid.appendChild(div);
+            });
+            const me = document.createElement('div');
+            me.className = "video-box"; me.id = "video-自分";
+            me.innerHTML = `<img src="${imageSources['自分']}" class="video-content"><div class="video-name">自分</div>`;
+            grid.appendChild(me);
+        }
+
+        function initSpeech() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return;
+            
+            recognition = new SpeechRecognition();
+            recognition.lang = "ja-JP";
+            recognition.interimResults = true;
+            recognition.continuous = true;
+
+            recognition.onresult = (event) => {
+                let final = "";
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) final += event.results[i][0].transcript;
+                }
+                if (final) {
+                    const input = document.getElementById('user-text-input');
+                    input.value = input.value ? input.value + " " + final : final;
+                    input.scrollTop = input.scrollHeight;
+                }
+            };
+        }
+
+        // ★いつでも割り込み可能にする
+        function toggleMic() {
+            // AIが話している、または思考中なら中断する
+            if (isAiSpeaking || (abortController && !abortController.signal.aborted)) {
+                stopAI();
+                document.getElementById('status-text').innerText = "割り込みました！録音中...";
+            }
+
+            const btn = document.getElementById('mic-btn');
+            if (!isRecording) {
+                isRecording = true;
+                try { recognition.start(); } catch(e){}
+                btn.classList.add("recording");
+            } else {
+                isRecording = false;
+                recognition.stop();
+                btn.classList.remove("recording");
+            }
+        }
+
+        // AIを強制停止する関数
+        function stopAI() {
+            synthesis.cancel(); // 音声を止める
+            isAiSpeaking = false;
+            if (abortController) {
+                abortController.abort(); // API通信をキャンセル
+                abortController = null;
+            }
+            document.getElementById('status-text').innerText = "スタンバイ";
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('user-text-input');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            if (isRecording) toggleMic(); // 録音停止
+
+            // ★修正: 自分の名前は出さない
+            addMessage("user", "自分", text);
+            input.value = "";
+
+            if (currentMode === 'interview') interviewCount++;
+            askGemini(text, false);
+        }
+
+        async function askGemini(text, isSystem) {
+            stopAI(); // 前の処理があれば消す
+            isAiSpeaking = true; 
+            abortController = new AbortController(); // 新しい通信用ID発行
+            
+            document.getElementById('status-text').innerText = "AIが思考中...";
+
+            // GDの場合、常にフェーズを意識させるプロンプト
+            let prompt = "";
+            if (isSystem) {
+                prompt = text;
+            } else {
+                if (currentMode === 'interview') {
+                    prompt = `履歴:\n${conversationHistory.slice(-6).join("\n")}\n\nユーザーの発言: "${text}"\n\n指示: 面接官としてリアクションし、次の質問をしてください。出力形式:『面接官: 内容』`;
+                } else {
+                    prompt = `履歴:\n${conversationHistory.slice(-6).join("\n")}\n\nユーザーの発言: "${text}"\n\n
+                    【GD進行指示】
+                    **重要: 田中以外のメンバー（佐藤、鈴木、高橋、渡辺）も積極的に、均等に発言させてください。**
+                    
+                    現在の議論の流れを受けて、学生メンバーたちが自然に会話を続けてください。
+                    出力形式:『名前: 内容』`;
+                }
+            }
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${USER_API_KEY}`;
+            
+            // 安全設定
+            const requestBody = {
+                contents: [{ parts: [{ text: prompt }] }],
+                safetySettings: [
+                    { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                    { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                    { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                    { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+                ]
+            };
+
+            try {
+                const res = await fetch(url, {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify(requestBody),
+                    signal: abortController.signal // ★割り込み用シグナル
+                });
+                
+                const json = await res.json();
+                
+                // ★システムエラー対策: データ構造チェックを厳密に
+                if (json.error) {
+                    throw new Error("APIエラー: " + json.error.message);
+                }
+                if (!json.candidates || !json.candidates[0] || !json.candidates[0].content || !json.candidates[0].content.parts) {
+                    // ブロック等の理由で空の場合がある
+                    throw new Error("AIからの応答がありませんでした。(通信エラーまたはブロック)");
+                }
+
+                const aiText = json.candidates[0].content.parts[0].text;
+                conversationHistory.push(isSystem ? "System: Start" : `User: ${text}`);
+                conversationHistory.push(`AI: ${aiText}`);
+
+                document.getElementById('status-text').innerText = "AIが発言中...";
+
+                const lines = aiText.split('\n').filter(l => l.trim() !== "");
+                for (let line of lines) {
+                    if (!isAiSpeaking) break; // 割り込まれたらループ終了
+
+                    const match = line.match(/^(.+?)[：:](.+)$/);
+                    if (match) {
+                        const name = match[1].trim();
+                        const content = match[2].trim();
+                        if (name === "人事") setTimeout(() => document.getElementById('video-人事')?.remove(), 5000);
+                        
+                        addMessage("ai", name, content);
+                        await speak(content, name);
+                    }
+                }
+            } catch(e) {
+                if (e.name === 'AbortError') {
+                    console.log("中断されました");
+                } else {
+                    addMessage("sys", "システム", "エラー: " + e.message);
+                }
+            } finally {
+                isAiSpeaking = false;
+                document.getElementById('status-text').innerText = "待機中";
+            }
+        }
+
+        // ★修正: 自分の発言時は名前非表示
+        function addMessage(role, name, text) {
+            const div = document.createElement('div');
+            div.className = `message ${role}-msg`;
+            
+            let html = "";
+            // ユーザー(自分)の場合は名前を表示しない
+            if (role !== 'user') {
+                html += `<span class="msg-name">${name}</span>`;
+            }
+            html += text;
+            
+            div.innerHTML = html;
+            const area = document.getElementById('chat-area');
+            area.appendChild(div);
+            area.scrollTop = area.scrollHeight;
+        }
+
+        function speak(text, name) {
+            return new Promise(resolve => {
+                if (!isAiSpeaking) { resolve(); return; } // 割り込みチェック
+
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = "ja-JP";
+                const c = voiceConfig[name] || {p:1, r:1};
+                u.pitch = c.p; u.rate = c.r;
+                
+                const vid = document.getElementById(`video-${name}`);
+                if(vid) vid.classList.add('speaking');
+                
+                u.onend = () => { if(vid) vid.classList.remove('speaking'); resolve(); };
+                u.onerror = () => { if(vid) vid.classList.remove('speaking'); resolve(); };
+                synthesis.speak(u);
+            });
+        }
+    </script>
+</body>
+</html>
